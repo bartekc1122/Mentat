@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Mentat.Infrastructure.LLM
+namespace Mentat.Infrastructure.LLM.Client
 {
-    public class API
+    public interface ILLMChatConnection
     {
     }
 }

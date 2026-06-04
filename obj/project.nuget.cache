@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "mrOUpWqOsbk=",
+  "dgSpecHash": "EO8Sef7SCaA=",
   "success": true,
   "projectFilePath": "C:\\Users\\przem\\Pulpit\\Mentat\\Mentat.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\przem\\.nuget\\packages\\dotnetenv\\3.2.0\\dotnetenv.3.2.0.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\googlegson\\2.13.1.1\\googlegson.2.13.1.1.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\microsoft.extensions.configuration\\10.0.0\\microsoft.extensions.configuration.10.0.0.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\10.0.3\\microsoft.extensions.configuration.abstractions.10.0.3.nupkg.sha512",
@@ -34,6 +35,7 @@
     "C:\\Users\\przem\\.nuget\\packages\\microsoft.windowsappsdk\\1.7.250909003\\microsoft.windowsappsdk.1.7.250909003.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\openai\\2.10.0\\openai.2.10.0.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\plugin.maui.audio\\4.0.0\\plugin.maui.audio.4.0.0.nupkg.sha512",
+    "C:\\Users\\przem\\.nuget\\packages\\superpower\\3.0.0\\superpower.3.0.0.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\system.clientmodel\\1.10.0\\system.clientmodel.1.10.0.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\system.memory.data\\10.0.3\\system.memory.data.10.0.3.nupkg.sha512",
     "C:\\Users\\przem\\.nuget\\packages\\xamarin.android.glide\\4.16.0.14\\xamarin.android.glide.4.16.0.14.nupkg.sha512",
