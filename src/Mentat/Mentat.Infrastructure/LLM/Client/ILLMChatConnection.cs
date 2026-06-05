@@ -6,5 +6,6 @@ namespace Mentat.Infrastructure.LLM.Client
 {
     public interface ILLMChatConnection
     {
+        ILLMChatConnection Create(string schemaName, BinaryData jsonSchema, string systemMessage);
     }
 }

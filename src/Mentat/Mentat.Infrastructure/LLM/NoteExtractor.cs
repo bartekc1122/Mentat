@@ -6,9 +6,9 @@ namespace Mentat.Infrastructure.LLM;
     {
         private ILLMChatConnection _client;
 
-        public NoteExtractor(ILLMChatConnection client)
+        public NoteExtractor(IConnectionProvider provider)
         {
-            _client = client;
+            _client = provider.CreateConnection("note_extractor", BinaryData.FromString("{}"), "Extract notes from text.");
         }
 
     }
