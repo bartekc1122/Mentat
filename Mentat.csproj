@@ -71,6 +71,10 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="OpenAI" Version="2.10.0" />
 		<PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
+
+		<None Update=".env">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 </Project>

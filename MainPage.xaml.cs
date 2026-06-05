@@ -1,4 +1,8 @@
-﻿namespace Mentat;
+﻿using Mentat.Infrastructure.LLM;
+using Mentat.Infrastructure.LLM.Client;
+
+
+namespace Mentat;
 
 public partial class MainPage : ContentPage
 {
@@ -9,9 +13,10 @@ public partial class MainPage : ContentPage
 		InitializeComponent();
 	}
 
-	private void OnCounterClicked(object? sender, EventArgs e)
+	private async void OnCounterClicked(object? sender, EventArgs e)
 	{
-		count++;
+       
+        count++;
 
 		if (count == 1)
 			CounterBtn.Text = $"Clicked {count} time";
