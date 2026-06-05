@@ -1,7 +1,4 @@
-﻿using Mentat.Infrastructure.LLM;
-using Mentat.Infrastructure.LLM.Client;
-
-
+﻿
 namespace Mentat;
 
 public partial class MainPage : ContentPage
