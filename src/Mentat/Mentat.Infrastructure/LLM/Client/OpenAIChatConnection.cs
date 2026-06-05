@@ -1,7 +1,6 @@
-﻿using OpenAI;
+﻿
 using OpenAI.Chat;
 using System.ClientModel;
-using System;
 
 namespace Mentat.Infrastructure.LLM.Client
 {
