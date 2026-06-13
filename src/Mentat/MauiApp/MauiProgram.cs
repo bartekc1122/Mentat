@@ -33,12 +33,29 @@ public static class MauiProgram
 		return builder.Build();
 	}
 
+	private const string ApiKeyName = "OPENAI_API_KEY";
+
 	private static string LoadApiKey()
 	{
-		var envPath = Path.Combine(AppContext.BaseDirectory, ".env");
-		if (File.Exists(envPath))
-			DotNetEnv.Env.Load(envPath);
+		try
+		{
+			// openai.env is bundled into the app package via Resources/Raw, so read it from there.
+			using Stream stream = Task.Run(() => FileSystem.OpenAppPackageFileAsync("openai.env")).GetAwaiter().GetResult();
+			using var reader = new StreamReader(stream);
+			string content = reader.ReadToEnd();
 
-		return Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "";
+			foreach (string line in content.Split('\n'))
+			{
+				string trimmed = line.Trim();
+				if (trimmed.StartsWith($"{ApiKeyName}="))
+					return trimmed[(ApiKeyName.Length + 1)..].Trim().Trim('"');
+			}
+		}
+		catch
+		{
+			// .env not bundled (e.g. desktop dev) — fall back to environment variable.
+		}
+
+		return Environment.GetEnvironmentVariable(ApiKeyName) ?? "";
 	}
 }
