@@ -29,11 +29,15 @@ namespace Mentat.Infrastructure.LLM.Client
             if (apiKey == null)
                 throw new Exception();
 
+            return Create(schemaName, jsonSchema, systemMessage, apiKey);
+        }
+
+        public static OpenAIChatConnection Create(string schemaName, BinaryData jsonSchema, string systemMessage, string apiKey)
+        {
             ChatClient client = new(
                     model: model,
                     credential: new ApiKeyCredential(apiKey)
                     );
-
 
             return new OpenAIChatConnection(client, GetOptions(schemaName, jsonSchema), new SystemChatMessage(systemMessage));
         }
