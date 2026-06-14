@@ -60,9 +60,9 @@ public partial class MainPage : ContentPage
         try
         {
             Stream audio = await _recording.StopAsync();
-            string transcript = await _transcription.TranscribeAsync(audio, "recording.wav");
+            DiarizedTranscript transcript = await _transcription.TranscribeAsync(audio, "recording.wav");
 
-            TranscriptLabel.Text = transcript;
+            TranscriptLabel.Text = transcript.IsEmpty ? "(no speech detected)" : transcript.ToText();
             StatusLabel.Text = "Done";
         }
         catch (Exception ex)
