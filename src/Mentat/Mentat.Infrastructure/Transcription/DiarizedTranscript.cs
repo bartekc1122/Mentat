@@ -6,8 +6,8 @@ namespace Mentat.Infrastructure.Transcription
     {
         public bool IsEmpty => Segments.Count == 0;
 
-        // Renders the diarized transcript as labelled lines, e.g. "Speaker A: ...".
+        // Renders the diarized transcript as labelled lines, e.g. "Bartek: ..." or "Person 1: ...".
         public string ToText() =>
-            string.Join("\n", Segments.Select(s => $"Speaker {s.Speaker}: {s.Text}"));
+            string.Join("\n", Segments.Select(s => $"{s.Speaker}: {s.Text}"));
     }
 }

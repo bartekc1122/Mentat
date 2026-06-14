@@ -6,7 +6,7 @@ namespace Mentat.Infrastructure.LLM.Client
 {
     public class OpenAIChatConnection : ILLMChatConnection
     {
-        private const string model = "gpt-5-nano";
+        private const string DefaultModel = "gpt-5-nano";
         private SystemChatMessage _systemMessage;
 
 
@@ -20,7 +20,7 @@ namespace Mentat.Infrastructure.LLM.Client
             _systemMessage = systemMessage;
         }
 
-        public static OpenAIChatConnection Create(string schemaName, BinaryData jsonSchema, string systemMessage)
+        public static OpenAIChatConnection Create(string schemaName, BinaryData jsonSchema, string systemMessage, string? model = null)
         {
             string dir = Directory.GetCurrentDirectory();
             string env = Path.Combine(dir, ".env");
@@ -29,13 +29,13 @@ namespace Mentat.Infrastructure.LLM.Client
             if (apiKey == null)
                 throw new Exception();
 
-            return Create(schemaName, jsonSchema, systemMessage, apiKey);
+            return Create(schemaName, jsonSchema, systemMessage, apiKey, model);
         }
 
-        public static OpenAIChatConnection Create(string schemaName, BinaryData jsonSchema, string systemMessage, string apiKey)
+        public static OpenAIChatConnection Create(string schemaName, BinaryData jsonSchema, string systemMessage, string apiKey, string? model = null)
         {
             ChatClient client = new(
-                    model: model,
+                    model: model ?? DefaultModel,
                     credential: new ApiKeyCredential(apiKey)
                     );
 
