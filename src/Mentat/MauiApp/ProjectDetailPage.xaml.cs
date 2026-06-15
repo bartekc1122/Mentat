@@ -92,17 +92,15 @@ public partial class ProjectDetailPage : ContentPage
     }
 }
 
-/// <summary>Widok pojedynczego wyniku wyszukiwania (notatka + spotkanie, z którego pochodzi).</summary>
+/// <summary>Widok pojedynczego wyniku wyszukiwania (element + spotkanie, z którego pochodzi).</summary>
 public sealed class SearchResultView
 {
     public SearchResultView(SearchResult result, string meetingTitle)
     {
         MeetingId = result.MeetingId;
-
-        bool hasTitle = !string.IsNullOrWhiteSpace(result.Title);
-        Headline = hasTitle ? result.Title : result.Body;
-        Detail = hasTitle ? result.Body : "";
-        Meta = $"{TypeLabel(result.Note.Type)} • {meetingTitle}";
+        Headline = result.Content;
+        Detail = result.Quote;
+        Meta = $"{KindLabel(result.Kind)} • {meetingTitle}";
     }
 
     public int MeetingId { get; }
@@ -111,11 +109,10 @@ public sealed class SearchResultView
     public bool HasDetail => !string.IsNullOrWhiteSpace(Detail);
     public string Meta { get; }
 
-    private static string TypeLabel(string type) => type switch
+    private static string KindLabel(string kind) => kind switch
     {
-        NoteTypes.Topic => "Temat",
-        NoteTypes.Decision => "Decyzja",
-        NoteTypes.Action => "Zadanie",
-        _ => "Notatka",
+        ItemKinds.Informacja => "Informacja",
+        ItemKinds.Zadanie => "Zadanie",
+        _ => "Element",
     };
 }

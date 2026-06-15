@@ -3,16 +3,15 @@ using Mentat.Infrastructure.Storage;
 
 namespace Mentat.Infrastructure.Search;
 
-/// <summary>Pojedynczy wynik wyszukiwania — element notatki z dopasowaniem i linkami do cytatów.</summary>
+/// <summary>Pojedynczy wynik wyszukiwania — element (informacja/zadanie) z dopasowaniem.</summary>
 public sealed record SearchResult(Note Note, double Score)
 {
     public int MeetingId => Note.MeetingId;
-    public string Title => Note.Title;
-    public string Body => Note.Body;
+    public string Kind => Note.Kind;
+    public string Content => Note.Content;
 
-    /// <summary>Refy źródłowych wypowiedzi (np. "u3,u4") — linki do skoku do cytatu/rozmowy.</summary>
-    public string[] SourceRefs =>
-        Note.SourceRefs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    /// <summary>Dosłowny cytat z transkryptu, w którym element padł.</summary>
+    public string Quote => Note.Quote;
 }
 
 /// <summary>

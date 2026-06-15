@@ -1,5 +1,3 @@
-using System.Text.Json;
-using Mentat.Infrastructure.Pipeline;
 using Mentat.Infrastructure.Storage;
 
 namespace Mentat;
@@ -38,18 +36,25 @@ public partial class MeetingDetailPage : ContentPage
         }
 
         Title = meeting.Title;
-        Dictionary<string, string> quotes = BuildQuoteLookup(meeting.UtterancesJson);
+
+        // Timestamp — kiedy spotkanie się odbyło.
+        Container.Add(new Label
+        {
+            Text = $"Spotkanie z {meeting.CreatedAt:yyyy-MM-dd HH:mm}",
+            FontSize = 13,
+            TextColor = Colors.Gray,
+        });
+
         List<Note> notes = await _database.GetNotesByMeetingAsync(meetingId);
 
-        AddSection("Tematy", notes.Where(n => n.Type == NoteTypes.Topic), quotes);
-        AddSection("Decyzje", notes.Where(n => n.Type == NoteTypes.Decision), quotes);
-        AddSection("Zadania", notes.Where(n => n.Type == NoteTypes.Action), quotes);
+        AddSection("Informacje", notes.Where(n => n.Kind == ItemKinds.Informacja));
+        AddSection("Zadania", notes.Where(n => n.Kind == ItemKinds.Zadanie));
 
-        if (Container.Count == 0)
-            Container.Add(new Label { Text = "Brak notatek dla tego spotkania.", TextColor = Colors.Gray });
+        if (notes.Count == 0)
+            Container.Add(new Label { Text = "Brak elementów dla tego spotkania.", TextColor = Colors.Gray });
     }
 
-    private void AddSection(string header, IEnumerable<Note> notes, Dictionary<string, string> quotes)
+    private void AddSection(string header, IEnumerable<Note> notes)
     {
         var list = notes.ToList();
         if (list.Count == 0)
@@ -64,36 +69,29 @@ public partial class MeetingDetailPage : ContentPage
         });
 
         foreach (Note note in list)
-            Container.Add(BuildNoteCard(note, quotes));
+            Container.Add(BuildNoteCard(note));
     }
 
-    private static Border BuildNoteCard(Note note, Dictionary<string, string> quotes)
+    private static Border BuildNoteCard(Note note)
     {
         var content = new VerticalStackLayout { Spacing = 6 };
 
-        if (!string.IsNullOrWhiteSpace(note.Title))
-            content.Add(new Label { Text = note.Title, FontAttributes = FontAttributes.Bold, FontSize = 16 });
+        content.Add(new Label { Text = note.Content, FontSize = 16, FontAttributes = FontAttributes.Bold });
 
-        if (!string.IsNullOrWhiteSpace(note.Body))
-            content.Add(new Label { Text = note.Body, FontSize = 15 });
-
-        string meta = BuildActionMeta(note);
+        string meta = BuildTaskMeta(note);
         if (meta.Length > 0)
             content.Add(new Label { Text = meta, FontSize = 13, TextColor = Colors.DarkSlateGray });
 
-        // Linki/cytaty: rozwijamy refy źródłowych wypowiedzi na treść.
-        foreach (string reference in note.SourceRefs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            string quote = quotes.TryGetValue(reference, out string? text) ? text : reference;
+        // Dosłowny cytat z transkryptu, w którym element padł.
+        if (!string.IsNullOrWhiteSpace(note.Quote))
             content.Add(new Label
             {
-                Text = $"„{quote}”",
+                Text = $"„{note.Quote}”",
                 FontSize = 13,
                 FontAttributes = FontAttributes.Italic,
                 TextColor = Colors.Gray,
                 Margin = new Thickness(8, 0, 0, 0),
             });
-        }
 
         return new Border
         {
@@ -105,31 +103,14 @@ public partial class MeetingDetailPage : ContentPage
         };
     }
 
-    private static string BuildActionMeta(Note note)
+    private static string BuildTaskMeta(Note note)
     {
-        if (note.Type != NoteTypes.Action)
+        if (note.Kind != ItemKinds.Zadanie)
             return "";
 
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(note.Owner)) parts.Add($"Właściciel: {note.Owner}");
         if (!string.IsNullOrWhiteSpace(note.Deadline)) parts.Add($"Termin: {note.Deadline}");
-        if (!string.IsNullOrWhiteSpace(note.Blocker)) parts.Add($"Bloker: {note.Blocker}");
         return string.Join("  •  ", parts);
-    }
-
-    private static Dictionary<string, string> BuildQuoteLookup(string utterancesJson)
-    {
-        var lookup = new Dictionary<string, string>();
-        try
-        {
-            var utterances = JsonSerializer.Deserialize<List<Utterance>>(utterancesJson) ?? [];
-            foreach (Utterance u in utterances)
-                lookup[u.Ref] = $"{u.Speaker}: {u.Text}";
-        }
-        catch
-        {
-            // Uszkodzony JSON — pokażemy same identyfikatory refów.
-        }
-        return lookup;
     }
 }

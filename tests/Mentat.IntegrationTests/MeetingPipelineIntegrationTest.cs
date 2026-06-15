@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Mentat.Infrastructure.Embeddings;
 using Mentat.Infrastructure.LLM;
 using Mentat.Infrastructure.Pipeline;
@@ -28,7 +27,7 @@ public class MeetingPipelineIntegrationTest
 
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task ProcessAsync_StoresNotesWithLinksAndEmbeddings_AndSearchFindsTopic()
+    public async Task ProcessAsync_StoresItemsWithQuotesAndEmbeddings_AndSearchFindsTopic()
     {
         string apiKey = TestConfig.LoadApiKey();
         Assert.False(string.IsNullOrWhiteSpace(apiKey), "Brak OPENAI_API_KEY (.env lub zmienna środowiskowa).");
@@ -46,34 +45,25 @@ public class MeetingPipelineIntegrationTest
             const int projectId = 1;
             ProcessResult result = await processor.ProcessAsync(Transcript, projectId);
 
-            // Spotkanie zapisane, notatki istnieją.
+            // Spotkanie zapisane z timestampem, elementy istnieją.
             Assert.True(result.Meeting.Id > 0);
             Assert.True(result.NoteCount > 0);
+            Assert.True(result.Meeting.CreatedAt > DateTime.MinValue);
 
             List<Note> notes = await database.GetNotesByMeetingAsync(result.Meeting.Id);
             Assert.NotEmpty(notes);
-            Assert.Contains(notes, n => n.Type == NoteTypes.Topic);
-            Assert.Contains(notes, n => n.Type == NoteTypes.Decision);
 
-            // Każda notatka ma linki (source refs) wskazujące istniejące wypowiedzi u1..u12.
-            var validRefs = Enumerable.Range(1, 12).Select(i => $"u{i}").ToHashSet();
-            foreach (Note n in notes)
+            // Każdy element jest informacją albo zadaniem, ma treść, dosłowny cytat i embedding.
+            Assert.All(notes, n =>
             {
-                var refs = n.SourceRefs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                Assert.NotEmpty(refs);
-                Assert.All(refs, r => Assert.Matches(new Regex("^u[0-9]+$"), r));
-                Assert.All(refs, r => Assert.Contains(r, validRefs));
-            }
+                Assert.Contains(n.Kind, new[] { ItemKinds.Informacja, ItemKinds.Zadanie });
+                Assert.False(string.IsNullOrWhiteSpace(n.Content));
+                Assert.False(string.IsNullOrWhiteSpace(n.Quote));
+                Assert.True(n.Embedding is { Length: > 0 } && n.EmbeddingDim > 0);
+            });
 
-            // Tematy i decyzje mają embedding.
-            Assert.All(notes.Where(n => n.Type is NoteTypes.Topic or NoteTypes.Decision),
-                n => Assert.True(n.Embedding is { Length: > 0 } && n.EmbeddingDim > 0));
-
-            // Brak zdublowanych tematów z granic okien (po konsolidacji tytuły są unikalne).
-            var topicTitles = notes.Where(n => n.Type == NoteTypes.Topic)
-                .Select(n => n.Title.Trim().ToLowerInvariant())
-                .ToList();
-            Assert.Equal(topicTitles.Count, topicTitles.Distinct().Count());
+            // W rozmowie są zadania (np. naprawa tokenu, raport) → powinno powstać przynajmniej jedno 'zadanie'.
+            Assert.Contains(notes, n => n.Kind == ItemKinds.Zadanie);
 
             // Wyszukiwanie semantyczne znajduje rozmowę o logowaniu/OAuth.
             var search = new SemanticSearchService(database, embeddings);
@@ -82,8 +72,8 @@ public class MeetingPipelineIntegrationTest
             Assert.NotEmpty(hits);
             Assert.True(hits[0].Score > 0.2, $"Zbyt niskie dopasowanie: {hits[0].Score}");
             Assert.Contains(hits, h =>
-                (h.Title + " " + h.Body).Contains("OAuth", StringComparison.OrdinalIgnoreCase) ||
-                (h.Title + " " + h.Body).Contains("logowan", StringComparison.OrdinalIgnoreCase));
+                (h.Content + " " + h.Quote).Contains("OAuth", StringComparison.OrdinalIgnoreCase) ||
+                (h.Content + " " + h.Quote).Contains("logowan", StringComparison.OrdinalIgnoreCase));
         }
         finally
         {
