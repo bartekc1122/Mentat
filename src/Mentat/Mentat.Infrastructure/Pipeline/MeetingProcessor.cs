@@ -13,8 +13,8 @@ public sealed record ProcessResult(Meeting Meeting, int NoteCount);
 
 /// <summary>
 /// Funkcja docelowa: przyjmuje gotowy tekst z rolami i wykonuje cały pipeline —
-/// split → okna z nakładaniem → ekstrakcja per okno (LLM) → konsolidacja (LLM) →
-/// embeddingi → zapis spotkania i notatek w SQLite.
+/// split → okna z nakładaniem → ekstrakcja elementów per okno (LLM) → konsolidacja (LLM) →
+/// embeddingi → zapis spotkania i elementów w SQLite.
 /// </summary>
 public sealed class MeetingProcessor
 {
@@ -45,12 +45,12 @@ public sealed class MeetingProcessor
             throw new ArgumentException("Transkrypt jest pusty lub nie zawiera wypowiedzi.", nameof(transcript));
 
         // Etap 1: ekstrakcja per okno (z nakładaniem). Błąd jednego okna nie przerywa całości.
-        var windowResults = new List<NotesPayload>();
+        var windowResults = new List<ItemsPayload>();
         foreach (IReadOnlyList<Utterance> window in Windowing.Window(utterances, _windowSize, _windowOverlap))
         {
             try
             {
-                NotesPayload payload = await _extractor.ExtractWindowAsync(BuildWindowText(window), cancellationToken);
+                ItemsPayload payload = await _extractor.ExtractWindowAsync(BuildWindowText(window), cancellationToken);
                 windowResults.Add(payload);
             }
             catch (Exception ex)
@@ -60,24 +60,25 @@ public sealed class MeetingProcessor
         }
 
         // Etap 2: konsolidacja (scalanie duplikatów z nakładających się okien).
-        NotesPayload consolidated = windowResults.Count switch
+        ItemsPayload consolidated = windowResults.Count switch
         {
-            0 => new NotesPayload([], [], []),
+            0 => new ItemsPayload([]),
             1 => windowResults[0],
             _ => await _extractor.ConsolidateAsync(windowResults, cancellationToken),
         };
 
-        // Zapis spotkania (tytuł z pierwszego tematu, jeśli jest).
+        // Zapis spotkania z timestampem (kiedy się odbyło). Tytuł z pierwszego elementu, jeśli jest.
+        DateTime now = DateTime.Now;
         var meeting = new Meeting
         {
             ProjectId = projectId,
-            Title = consolidated.Topics.FirstOrDefault()?.Title ?? $"Spotkanie {DateTime.Now:yyyy-MM-dd HH:mm}",
-            CreatedAt = DateTime.UtcNow,
+            Title = BuildTitle(consolidated, now),
+            CreatedAt = now,
             UtterancesJson = JsonSerializer.Serialize(utterances),
         };
         meeting.Id = await _database.AddMeetingAsync(meeting);
 
-        // Etap 3: budowa notatek + embeddingi (tematy i decyzje; zadania linkują się przez temat).
+        // Etap 3: budowa elementów + embeddingi (każdy element pod wyszukiwanie semantyczne).
         List<Note> notes = BuildNotes(consolidated, meeting);
         await EmbedNotesAsync(notes, cancellationToken);
 
@@ -87,58 +88,50 @@ public sealed class MeetingProcessor
 
     private static string BuildWindowText(IReadOnlyList<Utterance> window)
     {
+        // Bez prefiksów [uN] — model ma zwracać dosłowne cytaty z czystego tekstu 'Mówca: tekst'.
         var sb = new StringBuilder();
         foreach (Utterance u in window)
-            sb.Append('[').Append(u.Ref).Append("] ").Append(u.Speaker).Append(": ").AppendLine(u.Text);
+            sb.Append(u.Speaker).Append(": ").AppendLine(u.Text);
         return sb.ToString();
     }
 
-    private static List<Note> BuildNotes(NotesPayload payload, Meeting meeting)
+    private static string BuildTitle(ItemsPayload payload, DateTime now)
     {
-        var notes = new List<Note>();
+        string? first = payload.Items.FirstOrDefault()?.Content;
+        if (string.IsNullOrWhiteSpace(first))
+            return $"Spotkanie {now:yyyy-MM-dd HH:mm}";
 
-        foreach (ExtractedTopic t in payload.Topics)
-            notes.Add(NewNote(meeting, NoteTypes.Topic, t.Title, t.Summary, t.SourceRefs));
-
-        foreach (ExtractedDecision d in payload.Decisions)
-            notes.Add(NewNote(meeting, NoteTypes.Decision, d.TopicTitle ?? "", d.Text, d.SourceRefs));
-
-        foreach (ExtractedAction a in payload.ActionItems)
-        {
-            Note note = NewNote(meeting, NoteTypes.Action, a.TopicTitle ?? "", a.Task, a.SourceRefs);
-            note.Owner = a.Owner;
-            note.Deadline = a.Deadline;
-            note.Blocker = a.Blocker;
-            notes.Add(note);
-        }
-
-        return notes;
+        first = first.Trim();
+        return first.Length <= 60 ? first : first[..60].TrimEnd() + "…";
     }
 
-    private static Note NewNote(Meeting meeting, string type, string title, string body, string[] sourceRefs) => new()
-    {
-        MeetingId = meeting.Id,
-        ProjectId = meeting.ProjectId,
-        Type = type,
-        Title = title,
-        Body = body,
-        SourceRefs = string.Join(",", sourceRefs),
-    };
+    private static List<Note> BuildNotes(ItemsPayload payload, Meeting meeting) =>
+    [
+        .. payload.Items.Select(item => new Note
+        {
+            MeetingId = meeting.Id,
+            ProjectId = meeting.ProjectId,
+            Kind = item.Kind,
+            Content = item.Content,
+            Owner = item.Owner,
+            Deadline = item.Deadline,
+            Quote = item.Quote,
+        })
+    ];
 
-    /// <summary>Embeduje tematy i decyzje jednym wywołaniem batch; zadania zostają bez embeddingu.</summary>
+    /// <summary>Embeduje treść każdego elementu jednym wywołaniem batch — pod wyszukiwanie semantyczne.</summary>
     private async Task EmbedNotesAsync(List<Note> notes, CancellationToken cancellationToken)
     {
-        List<Note> toEmbed = [.. notes.Where(n => n.Type is NoteTypes.Topic or NoteTypes.Decision)];
-        if (toEmbed.Count == 0)
+        if (notes.Count == 0)
             return;
 
-        var texts = toEmbed.Select(n => string.IsNullOrEmpty(n.Title) ? n.Body : $"{n.Title}\n{n.Body}").ToList();
+        var texts = notes.Select(n => n.Content).ToList();
         IReadOnlyList<float[]> vectors = await _embeddings.EmbedBatchAsync(texts, cancellationToken);
 
-        for (int i = 0; i < toEmbed.Count && i < vectors.Count; i++)
+        for (int i = 0; i < notes.Count && i < vectors.Count; i++)
         {
-            toEmbed[i].Embedding = VectorMath.ToBytes(vectors[i]);
-            toEmbed[i].EmbeddingDim = vectors[i].Length;
+            notes[i].Embedding = VectorMath.ToBytes(vectors[i]);
+            notes[i].EmbeddingDim = vectors[i].Length;
         }
     }
 }
