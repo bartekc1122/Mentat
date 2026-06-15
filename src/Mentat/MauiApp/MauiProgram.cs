@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using Mentat.Infrastructure.LLM;
+using Mentat.Infrastructure.LLM.Client;
 using Mentat.Infrastructure.Transcription;
 using Mentat.Services;
 using Plugin.Maui.Audio;
@@ -23,6 +25,8 @@ public static class MauiProgram
 		var apiKey = LoadApiKey();
 		builder.Services.AddSingleton<IRecordingService, RecordingService>();
 		builder.Services.AddSingleton<ITranscriptionService>(_ => new TranscriptionService(apiKey));
+		builder.Services.AddSingleton<IConnectionProvider>(_ => new OpenAIChatConnectionProvider(apiKey));
+		builder.Services.AddSingleton<SpeakerResolver>();
 
 		builder.Services.AddTransient<MainPage>();
 
