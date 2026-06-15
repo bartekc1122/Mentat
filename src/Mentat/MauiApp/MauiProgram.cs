@@ -1,4 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Mentat.Infrastructure.Embeddings;
+using Mentat.Infrastructure.LLM;
+using Mentat.Infrastructure.Pipeline;
+using Mentat.Infrastructure.Search;
+using Mentat.Infrastructure.Storage;
 using Mentat.Infrastructure.LLM;
 using Mentat.Infrastructure.LLM.Client;
 using Mentat.Infrastructure.Transcription;
@@ -27,6 +32,14 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ITranscriptionService>(_ => new TranscriptionService(apiKey));
 		builder.Services.AddSingleton<IConnectionProvider>(_ => new OpenAIChatConnectionProvider(apiKey));
 		builder.Services.AddSingleton<SpeakerResolver>();
+
+		// Pipeline przetwarzania spotkania: zapis w SQLite + embeddingi + wyszukiwanie semantyczne.
+		string dbPath = Path.Combine(FileSystem.AppDataDirectory, "mentat.db3");
+		builder.Services.AddSingleton(_ => new MeetingDatabase(dbPath));
+		builder.Services.AddSingleton<IEmbeddingService>(_ => new EmbeddingService(apiKey));
+		builder.Services.AddSingleton(_ => new NoteExtractor(apiKey));
+		builder.Services.AddSingleton<MeetingProcessor>();
+		builder.Services.AddSingleton<SemanticSearchService>();
 
 		builder.Services.AddTransient<MainPage>();
 
