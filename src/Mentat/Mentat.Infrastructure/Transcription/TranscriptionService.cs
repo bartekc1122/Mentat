@@ -7,6 +7,7 @@ namespace Mentat.Infrastructure.Transcription
     public class TranscriptionService : ITranscriptionService
     {
         private const string Model = "gpt-4o-transcribe-diarize";
+        private const string Language = "pl";
         private const string Endpoint = "https://api.openai.com/v1/audio/transcriptions";
 
         private static readonly HttpClient _http = new();
@@ -25,6 +26,7 @@ namespace Mentat.Infrastructure.Transcription
             fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
             form.Add(fileContent, "file", filename);
             form.Add(new StringContent(Model), "model");
+            form.Add(new StringContent(Language), "language");
             form.Add(new StringContent("diarized_json"), "response_format");
             form.Add(new StringContent("auto"), "chunking_strategy");
 
