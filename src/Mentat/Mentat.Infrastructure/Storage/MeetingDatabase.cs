@@ -20,6 +20,7 @@ public sealed class MeetingDatabase
         if (_initialized)
             return;
 
+        await _connection.CreateTableAsync<Project>();
         await _connection.CreateTableAsync<Meeting>();
         await _connection.CreateTableAsync<Note>();
         _initialized = true;
@@ -27,6 +28,40 @@ public sealed class MeetingDatabase
 
     /// <summary>Zamyka połączenie i zwalnia plik bazy (przydatne w testach / przy przełączaniu bazy).</summary>
     public Task CloseAsync() => _connection.CloseAsync();
+
+    // ── Projekty ────────────────────────────────────────────────────────────
+
+    public async Task<int> AddProjectAsync(Project project)
+    {
+        await InitAsync();
+        await _connection.InsertAsync(project);
+        return project.Id;
+    }
+
+    public async Task<List<Project>> GetProjectsAsync()
+    {
+        await InitAsync();
+        return await _connection.Table<Project>().OrderByDescending(p => p.CreatedAt).ToListAsync();
+    }
+
+    public async Task<Project?> GetProjectAsync(int id)
+    {
+        await InitAsync();
+        return await _connection.FindAsync<Project>(id);
+    }
+
+    /// <summary>Zwraca pierwszy projekt, a jeśli żadnego nie ma — tworzy domyślny i go zwraca.</summary>
+    public async Task<Project> GetOrCreateDefaultProjectAsync(string defaultName = "Ogólny")
+    {
+        await InitAsync();
+        List<Project> projects = await GetProjectsAsync();
+        if (projects.Count > 0)
+            return projects[0];
+
+        var project = new Project { Name = defaultName, CreatedAt = DateTime.UtcNow };
+        project.Id = await AddProjectAsync(project);
+        return project;
+    }
 
     public async Task<int> AddMeetingAsync(Meeting meeting)
     {
@@ -45,6 +80,15 @@ public sealed class MeetingDatabase
     {
         await InitAsync();
         return await _connection.FindAsync<Meeting>(id);
+    }
+
+    public async Task<List<Meeting>> GetMeetingsByProjectAsync(int projectId)
+    {
+        await InitAsync();
+        return await _connection.Table<Meeting>()
+            .Where(m => m.ProjectId == projectId)
+            .OrderByDescending(m => m.CreatedAt)
+            .ToListAsync();
     }
 
     public async Task<List<Note>> GetNotesByMeetingAsync(int meetingId)
