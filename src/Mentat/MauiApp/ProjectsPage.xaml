@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:storage="clr-namespace:Mentat.Infrastructure.Storage;assembly=Mentat.Infrastructure"
+             x:Class="Mentat.ProjectsPage"
+             Title="Projekty">
+
+    <Grid RowDefinitions="Auto, *" Padding="16" RowSpacing="12">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" ColumnSpacing="8">
+            <Entry
+                x:Name="NewProjectEntry"
+                Grid.Column="0"
+                Placeholder="Nazwa nowego projektu"
+                ReturnType="Done"
+                Completed="OnAddProjectClicked" />
+            <Button
+                Grid.Column="1"
+                Text="Dodaj"
+                Clicked="OnAddProjectClicked" />
+        </Grid>
+
+        <CollectionView
+            x:Name="ProjectsList"
+            Grid.Row="1"
+            SelectionMode="Single"
+            SelectionChanged="OnProjectSelected">
+
+            <CollectionView.EmptyView>
+                <Label
+                    Text="Brak projektów. Dodaj pierwszy powyżej."
+                    TextColor="Gray"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="storage:Project">
+                    <Grid Padding="12" RowDefinitions="Auto, Auto">
+                        <Label Grid.Row="0" Text="{Binding Name}" FontSize="18" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="{Binding CreatedAt, StringFormat='Utworzono: {0:yyyy-MM-dd HH:mm}'}"
+                               FontSize="12" TextColor="Gray" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>

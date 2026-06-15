@@ -4,7 +4,6 @@ using Mentat.Infrastructure.LLM;
 using Mentat.Infrastructure.Pipeline;
 using Mentat.Infrastructure.Search;
 using Mentat.Infrastructure.Storage;
-using Mentat.Infrastructure.LLM;
 using Mentat.Infrastructure.LLM.Client;
 using Mentat.Infrastructure.Transcription;
 using Mentat.Services;
@@ -16,6 +15,9 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
+		// Rejestruje natywny provider SQLite (e_sqlite3) zanim użyjemy bazy.
+		SQLitePCL.Batteries_V2.Init();
+
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
@@ -42,6 +44,9 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SemanticSearchService>();
 
 		builder.Services.AddTransient<MainPage>();
+		builder.Services.AddTransient<ProjectsPage>();
+		builder.Services.AddTransient<ProjectDetailPage>();
+		builder.Services.AddTransient<MeetingDetailPage>();
 
 #if DEBUG
 		builder.Logging.AddDebug();

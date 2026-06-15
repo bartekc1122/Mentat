@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:storage="clr-namespace:Mentat.Infrastructure.Storage;assembly=Mentat.Infrastructure"
+             x:Class="Mentat.ProjectDetailPage"
+             Title="Projekt">
+
+    <Grid Padding="16">
+        <CollectionView
+            x:Name="MeetingsList"
+            SelectionMode="Single"
+            SelectionChanged="OnMeetingSelected">
+
+            <CollectionView.EmptyView>
+                <Label
+                    Text="Brak spotkań w tym projekcie. Nagraj spotkanie w zakładce Nagrywanie."
+                    TextColor="Gray"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="storage:Meeting">
+                    <Grid Padding="12" RowDefinitions="Auto, Auto">
+                        <Label Grid.Row="0" Text="{Binding Title}" FontSize="18" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                               FontSize="12" TextColor="Gray" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentPage>

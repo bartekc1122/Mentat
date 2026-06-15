@@ -6,9 +6,17 @@
     xmlns:local="clr-namespace:Mentat"
     Title="Mentat">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <Tab Title="Nagrywanie">
+            <ShellContent
+                ContentTemplate="{DataTemplate local:MainPage}"
+                Route="MainPage" />
+        </Tab>
+        <Tab Title="Projekty">
+            <ShellContent
+                ContentTemplate="{DataTemplate local:ProjectsPage}"
+                Route="ProjectsPage" />
+        </Tab>
+    </TabBar>
 
 </Shell>
