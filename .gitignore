@@ -357,3 +357,5 @@ __pycache__/
 
 # Human made files
 .env
+# Bundled OpenAI key (MAUI asset) - never commit
+src/Mentat/MauiApp/Resources/Raw/openai.env
