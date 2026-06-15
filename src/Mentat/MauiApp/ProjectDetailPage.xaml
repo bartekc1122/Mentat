@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:Mentat"
              xmlns:storage="clr-namespace:Mentat.Infrastructure.Storage;assembly=Mentat.Infrastructure"
              x:Class="Mentat.ProjectDetailPage"
              Title="Projekt">
 
-    <Grid Padding="16">
+    <Grid RowDefinitions="Auto, *" Padding="16" RowSpacing="8">
+
+        <SearchBar
+            x:Name="SearchBox"
+            Grid.Row="0"
+            Placeholder="Szukaj rozmów na temat..."
+            SearchButtonPressed="OnSearch"
+            TextChanged="OnSearchTextChanged" />
+
+        <!-- Lista spotkań (domyślny widok) -->
         <CollectionView
             x:Name="MeetingsList"
+            Grid.Row="1"
             SelectionMode="Single"
             SelectionChanged="OnMeetingSelected">
 
@@ -29,6 +40,35 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+
+        <!-- Wyniki wyszukiwania semantycznego (widoczne tylko podczas szukania) -->
+        <CollectionView
+            x:Name="ResultsList"
+            Grid.Row="1"
+            IsVisible="False"
+            SelectionMode="Single"
+            SelectionChanged="OnResultSelected">
+
+            <CollectionView.EmptyView>
+                <Label
+                    x:Name="ResultsEmptyLabel"
+                    Text="Brak wyników."
+                    TextColor="Gray"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="local:SearchResultView">
+                    <Grid Padding="12" RowDefinitions="Auto, Auto, Auto" RowSpacing="2">
+                        <Label Grid.Row="0" Text="{Binding Headline}" FontSize="16" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="{Binding Detail}" FontSize="14" IsVisible="{Binding HasDetail}" />
+                        <Label Grid.Row="2" Text="{Binding Meta}" FontSize="12" TextColor="Gray" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
     </Grid>
 
 </ContentPage>
