@@ -5,14 +5,14 @@ using Mentat.Infrastructure.Models;
 namespace Mentat.Infrastructure.LLM;
 
 /// <summary>
-/// Ekstrakcja elementów przez OpenAI (structured outputs, model gpt-5-mini). Dwa etapy:
+/// Ekstrakcja elementów przez OpenAI (structured outputs, model: LlmModels.Chat). Dwa etapy:
 ///  1. <see cref="ExtractWindowAsync"/> — z jednego okna rozmowy wyciąga listę elementów
 ///     ('informacja'/'zadanie') z dosłownym cytatem; dla zadań owner i deadline, jeśli wykrywalne.
 ///  2. <see cref="ConsolidateAsync"/> — scala duplikaty z nakładających się okien (rolling window).
 /// </summary>
 public sealed class NoteExtractor
 {
-    private const string Model = "gpt-5-mini";
+    private const string Model = LlmModels.Chat;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

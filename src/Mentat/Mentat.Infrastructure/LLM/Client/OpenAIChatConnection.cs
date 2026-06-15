@@ -6,7 +6,7 @@ namespace Mentat.Infrastructure.LLM.Client
 {
     public class OpenAIChatConnection : ILLMChatConnection
     {
-        private const string DefaultModel = "gpt-5-nano";
+        private const string DefaultModel = LlmModels.Chat;
         private SystemChatMessage _systemMessage;
 
 

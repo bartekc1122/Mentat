@@ -11,7 +11,7 @@ namespace Mentat.Infrastructure.LLM
     public class SpeakerResolver
     {
         private const string SchemaName = "speaker_names";
-        private const string Model = "gpt-5-mini";
+        private const string Model = LlmModels.Chat;
 
         private const string SchemaJson = """
         {
