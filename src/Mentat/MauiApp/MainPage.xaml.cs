@@ -1,3 +1,4 @@
+using Mentat.Infrastructure.LLM;
 using Mentat.Infrastructure.Transcription;
 using Mentat.Services;
 
@@ -9,14 +10,16 @@ public partial class MainPage : ContentPage
 
     private readonly IRecordingService _recording;
     private readonly ITranscriptionService _transcription;
+    private readonly SpeakerResolver _speakerResolver;
 
     private State _state = State.Idle;
 
-    public MainPage(IRecordingService recording, ITranscriptionService transcription)
+    public MainPage(IRecordingService recording, ITranscriptionService transcription, SpeakerResolver speakerResolver)
     {
         InitializeComponent();
         _recording = recording;
         _transcription = transcription;
+        _speakerResolver = speakerResolver;
     }
 
     private async void OnRecordClicked(object? sender, EventArgs e)
@@ -60,9 +63,12 @@ public partial class MainPage : ContentPage
         try
         {
             Stream audio = await _recording.StopAsync();
-            string transcript = await _transcription.TranscribeAsync(audio, "recording.wav");
+            DiarizedTranscript transcript = await _transcription.TranscribeAsync(audio, "recording.wav");
 
-            TranscriptLabel.Text = transcript;
+            StatusLabel.Text = "Identifying speakers...";
+            DiarizedTranscript named = await _speakerResolver.ResolveAsync(transcript);
+
+            TranscriptLabel.Text = named.IsEmpty ? "(no speech detected)" : named.ToText();
             StatusLabel.Text = "Done";
         }
         catch (Exception ex)

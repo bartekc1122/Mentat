@@ -4,6 +4,8 @@ using Mentat.Infrastructure.LLM;
 using Mentat.Infrastructure.Pipeline;
 using Mentat.Infrastructure.Search;
 using Mentat.Infrastructure.Storage;
+using Mentat.Infrastructure.LLM;
+using Mentat.Infrastructure.LLM.Client;
 using Mentat.Infrastructure.Transcription;
 using Mentat.Services;
 using Plugin.Maui.Audio;
@@ -28,6 +30,8 @@ public static class MauiProgram
 		var apiKey = LoadApiKey();
 		builder.Services.AddSingleton<IRecordingService, RecordingService>();
 		builder.Services.AddSingleton<ITranscriptionService>(_ => new TranscriptionService(apiKey));
+		builder.Services.AddSingleton<IConnectionProvider>(_ => new OpenAIChatConnectionProvider(apiKey));
+		builder.Services.AddSingleton<SpeakerResolver>();
 
 		// Pipeline przetwarzania spotkania: zapis w SQLite + embeddingi + wyszukiwanie semantyczne.
 		string dbPath = Path.Combine(FileSystem.AppDataDirectory, "mentat.db3");
