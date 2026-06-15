@@ -69,6 +69,9 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
+		<!-- Podbija bundle SQLite (ten sam, który ciągnie sqlite-net-pcl) ze starego 2.1.2 do 2.1.11:
+		     nowszy natywny libe_sqlite3 ładuje się poprawnie na Androidzie i ma 16 KB page size. -->
+		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
 		<ProjectReference Include="..\Mentat.Infrastructure\Mentat.Infrastructure.csproj" />
 
 		<None Update=".env">

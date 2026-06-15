@@ -24,8 +24,10 @@ public sealed class NoteExtractor
     public NoteExtractor(string apiKey)
     {
         BinaryData schema = BinaryData.FromString(NotesSchemaJson);
-        _extract = OpenAIChatConnection.Create("notes_extraction", schema, ExtractSystemPrompt, apiKey);
-        _consolidate = OpenAIChatConnection.Create("notes_consolidation", schema, ConsolidateSystemPrompt, apiKey);
+        // Argument nazwany apiKey: wymusza przeciążenie przyjmujące klucz (4. arg = apiKey),
+        // a nie to czytające .env (4. arg = model) — na Androidzie nie ma .env w CWD.
+        _extract = OpenAIChatConnection.Create("notes_extraction", schema, ExtractSystemPrompt, apiKey: apiKey);
+        _consolidate = OpenAIChatConnection.Create("notes_consolidation", schema, ConsolidateSystemPrompt, apiKey: apiKey);
     }
 
     /// <summary>Etap 1: ekstrakcja z jednego okna. <paramref name="windowText"/> ma wypowiedzi z prefiksami refów.</summary>
