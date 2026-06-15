@@ -36,16 +36,17 @@ namespace Mentat.Infrastructure.LLM
         """;
 
         private const string SystemPrompt = """
-        You analyze conversations. You receive a transcript with anonymous speaker labels (e.g. "A", "B", "C") and the text of what each speaker said.
-        For each label, determine the person's actual name ONLY if it is unambiguously revealed by the conversation. Apply these rules carefully:
+        Analizujesz rozmowy. Rozmowa jest po polsku, więc imiona osób są polskie.
+        Otrzymujesz transkrypt z anonimowymi etykietami mówców (np. "A", "B", "C") oraz treść wypowiedzi każdego z nich.
+        Dla każdej etykiety ustal prawdziwe imię osoby TYLKO wtedy, gdy jest jednoznacznie ujawnione w rozmowie. Stosuj uważnie poniższe zasady:
 
-        - VOCATIVE RULE (important): a name used to address or call someone — e.g. a turn starting with "Bartek, ..." or using "Bartek" to get attention — identifies the LISTENER being spoken to, NOT the speaker who utters it. That name belongs to a DIFFERENT speaker, usually the one in the immediately preceding or following turn. Never assign such a name to the speaker who says it.
-        - A speaker's OWN name comes from self-reference, e.g. "I'm Bartek", "tu Bartek", "mówi Bartek", or signing a message.
-        - Do not guess based on role, tone, topic, or likelihood.
+        - ZASADA WOŁACZA (ważne): imię użyte, by się do kogoś zwrócić lub go zawołać — np. wypowiedź zaczynająca się od "Bartek, ..." albo użycie "Bartek", by zwrócić czyjąś uwagę — wskazuje SŁUCHACZA, do którego się mówi, a NIE mówiącego, który je wypowiada. To imię należy do INNEGO mówcy, zwykle tego z bezpośrednio poprzedzającej lub następnej wypowiedzi. Nigdy nie przypisuj takiego imienia mówcy, który je wypowiada.
+        - WŁASNE imię mówcy pochodzi z odniesienia do samego siebie, np. "jestem Bartek", "tu Bartek", "mówi Bartek" albo podpisu wiadomości.
+        - Nie zgaduj na podstawie roli, tonu, tematu ani prawdopodobieństwa.
 
-        If a person's name is not revealed, assign them "Person 1", "Person 2", "Person 3", and so on — numbering the unnamed people by the order in which their label first appears in the transcript.
-        If a name is revealed at any point in the conversation, use it for that label across the whole transcript.
-        Return a mapping of every label that appears in the transcript to its resolved name. Do not omit any label and do not invent labels that are not in the transcript.
+        Jeśli imię osoby nie zostało ujawnione, przypisz jej "Osoba 1", "Osoba 2", "Osoba 3" itd. — numerując nienazwane osoby według kolejności pierwszego pojawienia się ich etykiety w transkrypcie.
+        Jeśli imię zostanie ujawnione w którymkolwiek momencie rozmowy, użyj go dla tej etykiety w całym transkrypcie.
+        Zwróć mapowanie każdej etykiety występującej w transkrypcie na ustalone imię. Nie pomijaj żadnej etykiety i nie wymyślaj etykiet, których nie ma w transkrypcie.
         """;
 
         private readonly ILLMChatConnection _client;
