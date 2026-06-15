@@ -1,0 +1,96 @@
+using System.Text.RegularExpressions;
+using Mentat.Infrastructure.Embeddings;
+using Mentat.Infrastructure.LLM;
+using Mentat.Infrastructure.Pipeline;
+using Mentat.Infrastructure.Search;
+using Mentat.Infrastructure.Storage;
+using Xunit;
+
+namespace Mentat.IntegrationTests;
+
+public class MeetingPipelineIntegrationTest
+{
+    // Dwa wyraźne tematy; krótkie okna wymuszą nakładanie i scalanie duplikatów.
+    private const string Transcript = """
+    Anna: Dzień dobry, zacznijmy od problemu z logowaniem.
+    Bartek: Logowanie się wykłada, błąd dotyczy tokenu OAuth.
+    Anna: Token OAuth wygasa i nie odświeża się poprawnie.
+    Bartek: Proponuję przejść na nowy provider OAuth.
+    Anna: Dobrze, decydujemy: przechodzimy na nowy provider OAuth.
+    Bartek: Naprawię odświeżanie tokenu do piątku.
+    Anna: Przejdźmy teraz do raportu sprzedaży za marzec.
+    Bartek: Sprzedaż w marcu wzrosła o dziesięć procent.
+    Anna: Potrzebujemy podsumowania wyników w formie raportu.
+    Bartek: Zgoda, raport przyda się na spotkanie z zarządem.
+    Anna: Ustalmy, że przygotujesz raport sprzedaży do środy.
+    Bartek: Jasne, przygotuję raport sprzedaży do środy.
+    """;
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task ProcessAsync_StoresNotesWithLinksAndEmbeddings_AndSearchFindsTopic()
+    {
+        string apiKey = TestConfig.LoadApiKey();
+        Assert.False(string.IsNullOrWhiteSpace(apiKey), "Brak OPENAI_API_KEY (.env lub zmienna środowiskowa).");
+
+        string dbPath = Path.Combine(Path.GetTempPath(), $"mentat_test_{Guid.NewGuid():N}.db3");
+        MeetingDatabase? database = null;
+        try
+        {
+            database = new MeetingDatabase(dbPath);
+            var extractor = new NoteExtractor(apiKey);
+            IEmbeddingService embeddings = new EmbeddingService(apiKey);
+            // Małe okna (size=6, overlap=2) → kilka nakładających się okien dla 12 wypowiedzi.
+            var processor = new MeetingProcessor(database, extractor, embeddings, windowSize: 6, windowOverlap: 2);
+
+            const int projectId = 1;
+            ProcessResult result = await processor.ProcessAsync(Transcript, projectId);
+
+            // Spotkanie zapisane, notatki istnieją.
+            Assert.True(result.Meeting.Id > 0);
+            Assert.True(result.NoteCount > 0);
+
+            List<Note> notes = await database.GetNotesByMeetingAsync(result.Meeting.Id);
+            Assert.NotEmpty(notes);
+            Assert.Contains(notes, n => n.Type == NoteTypes.Topic);
+            Assert.Contains(notes, n => n.Type == NoteTypes.Decision);
+
+            // Każda notatka ma linki (source refs) wskazujące istniejące wypowiedzi u1..u12.
+            var validRefs = Enumerable.Range(1, 12).Select(i => $"u{i}").ToHashSet();
+            foreach (Note n in notes)
+            {
+                var refs = n.SourceRefs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                Assert.NotEmpty(refs);
+                Assert.All(refs, r => Assert.Matches(new Regex("^u[0-9]+$"), r));
+                Assert.All(refs, r => Assert.Contains(r, validRefs));
+            }
+
+            // Tematy i decyzje mają embedding.
+            Assert.All(notes.Where(n => n.Type is NoteTypes.Topic or NoteTypes.Decision),
+                n => Assert.True(n.Embedding is { Length: > 0 } && n.EmbeddingDim > 0));
+
+            // Brak zdublowanych tematów z granic okien (po konsolidacji tytuły są unikalne).
+            var topicTitles = notes.Where(n => n.Type == NoteTypes.Topic)
+                .Select(n => n.Title.Trim().ToLowerInvariant())
+                .ToList();
+            Assert.Equal(topicTitles.Count, topicTitles.Distinct().Count());
+
+            // Wyszukiwanie semantyczne znajduje rozmowę o logowaniu/OAuth.
+            var search = new SemanticSearchService(database, embeddings);
+            var hits = await search.SearchAsync("problem z logowaniem i tokenem OAuth", projectId, topK: 5);
+
+            Assert.NotEmpty(hits);
+            Assert.True(hits[0].Score > 0.2, $"Zbyt niskie dopasowanie: {hits[0].Score}");
+            Assert.Contains(hits, h =>
+                (h.Title + " " + h.Body).Contains("OAuth", StringComparison.OrdinalIgnoreCase) ||
+                (h.Title + " " + h.Body).Contains("logowan", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            if (database is not null)
+                await database.CloseAsync();
+            if (File.Exists(dbPath))
+                File.Delete(dbPath);
+        }
+    }
+}
